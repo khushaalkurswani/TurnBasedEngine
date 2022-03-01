@@ -42,6 +42,7 @@ import { eAnimationType } from "./renderables/sprite_animate_renderable.js";
 
 // game objects
 import GameObject from "./game_objects/game_object.js";
+import Player from "./game_objects/player.js";
 import GameObjectSet from "./game_objects/game_object_set.js";
 
 // local to this file only
@@ -94,7 +95,7 @@ export default {
     Renderable, TextureRenderable, SpriteRenderable, SpriteAnimateRenderable, FontRenderable,
 
     // Game Objects
-    GameObject, GameObjectSet,
+    GameObject, Player, GameObjectSet,
 
     // constants
     eTexCoordArrayIndex, eAnimationType, eBoundCollideStatus,
