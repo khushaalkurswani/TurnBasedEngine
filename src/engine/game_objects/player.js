@@ -1,5 +1,5 @@
 "use strict";
-import BoundingBox from "../utils/bounding_box.js";
+
 import GameObject from "./game_object.js";
 
 class Player extends GameObject {
