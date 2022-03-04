@@ -11,11 +11,13 @@ class MyGame extends engine.Scene {
 
         this.mMsg = null;
     
-        this.mLineSet = [];
-        this.mCurrentLine = null;
-        this.mP1 = null;
+        this.mLineSet = null;
+        this.mPieceSet = null;
 
-        this.mShowLine = true;
+        this.mTurn = null;
+        this.mSpace = 0;
+        this.mBoard = [];
+        this.mVictor = null;
     }
         
     init() {
@@ -32,6 +34,32 @@ class MyGame extends engine.Scene {
         this.mMsg.setColor([0, 0, 0, 1]);
         this.mMsg.getXform().setPosition(-19, -8);
         this.mMsg.setTextHeight(3);
+
+        this.mLineSet = new engine.GameObjectSet();
+        let lineCoords = [[20, -2.5, 20, 57.5],
+                        [40, -2.5, 40, 57.5],
+                        [0, 17.5, 60, 17.5],
+                        [0, 37.5, 60, 37.5]];
+        for (let i = 0; i < lineCoords.length; i++) {
+            let currentLine = new engine.LineRenderable();
+            currentLine.setFirstVertex(lineCoords[i][0], lineCoords[i][1]);
+            currentLine.setSecondVertex(lineCoords[i][2], lineCoords[i][3]);
+            this.mLineSet.addToSet(currentLine);
+        }
+        this.mPieceSet = new engine.GameObjectSet();
+
+        this.mTurn = "circle";
+
+        /*
+        0 | 1 | 2
+        ----------
+        3 | 4 | 5
+        ----------
+        6 | 7 | 8
+        */
+        this.mBoard = ["empty", "empty", "empty",
+                       "empty", "empty", "empty",
+                       "empty", "empty", "empty"];
     }
     
     // This is the draw function, make sure to setup proper drawing environment, and more
@@ -41,69 +69,128 @@ class MyGame extends engine.Scene {
         engine.clearCanvas([0.9, 0.9, 0.9, 1.0]); // clear to light gray
     
         this.mCamera.setViewAndCameraMatrix();
-        let i, l;
-        for (i = 0; i < this.mLineSet.length; i++) {
-            l = this.mLineSet[i];
-            l.draw(this.mCamera);
-        }
-        this.mMsg.draw(this.mCamera);   // only draw status in the main camera
+
+        this.mMsg.draw(this.mCamera);
+        
+        this.mLineSet.draw(this.mCamera);
+        this.mPieceSet.draw(this.mCamera);
     }
     
     // The Update function, updates the application state. Make sure to _NOT_ draw
     // anything from this function!
     update () {
-        let msg = "Lines: " + this.mLineSet.length + " ";
+        let msg = "Turn: " + this.mTurn + " ";
         let echo = "";
         let x, y;
-        
-        // show line or point
-        if  (engine.input.isKeyClicked(engine.input.keys.P)) {
-            this.mShowLine = !this.mShowLine;
-            let line = null;
-            if (this.mCurrentLine !== null)
-                line = this.mCurrentLine;
-            else {
-                if (this.mLineSet.length > 0)
-                    line = this.mLineSet[this.mLineSet.length-1];
-            }
-            if (line !== null)
-                line.setShowLine(this.mShowLine);
-        }
     
-        if (engine.input.isButtonPressed(engine.input.eMouseButton.eMiddle)) {
-            let len = this.mLineSet.length;
-            if (len > 0) {
-                this.mCurrentLine = this.mLineSet[len - 1];
-                x = this.mCamera.mouseWCX();
-                y = this.mCamera.mouseWCY();
-                echo += "Selected " + len + " ";
-                echo += "[" + x.toPrecision(2) + " " + y.toPrecision(2) + "]";
-                this.mCurrentLine.setFirstVertex(x, y);
-            }
-        }
-    
-        if (engine.input.isButtonPressed(engine.input.eMouseButton.eLeft)) {
+        if (engine.input.isButtonClicked(engine.input.eMouseButton.eLeft) && this.mVictor === null) {
             x = this.mCamera.mouseWCX();
             y = this.mCamera.mouseWCY();
-            echo += "[" + x.toPrecision(2) + " " + y.toPrecision(2) + "]";
-    
-            if (this.mCurrentLine === null) { // start a new one
-                this.mCurrentLine = new engine.LineRenderable();
-                this.mCurrentLine.setFirstVertex(x, y);
-                this.mCurrentLine.setPointSize(5.0);
-                this.mCurrentLine.setShowLine(this.mShowLine);
-                this.mLineSet.push(this.mCurrentLine);
-            } else {
-                this.mCurrentLine.setSecondVertex(x, y);
+
+            this.mSpace = this.checkXY(x, y);
+            if (this.mBoard[this.mSpace] === "empty"){
+                this.placePiece();
             }
-        } else {
-            this.mCurrentLine = null;
-            this.mP1 = null;
         }
     
         msg += echo;
-        msg += " Show:" + (this.mShowLine ? "Ln" : "Pt");
+        msg += " Space:" + this.mSpace + " ";
+
+        if (this.mVictor !== null) {
+            msg += " Victor:" + this.mVictor;
+        }
         this.mMsg.setText(msg);
+    }
+
+    checkXY(x, y) {
+        //space 6
+        if (x < 20 && y < 17.5) {
+            return 6;
+        }
+        //space 7
+        if (x < 40 && x > 20 && y < 17.5) {
+            return 7;
+        }
+        //space 8
+        if (x > 40 && y < 17.5) {
+            return 8;
+        }
+        //space 3
+        if (x < 20 && y < 37.5 && y > 17.5) {
+            return 3;
+        }
+        //space 4
+        if (x < 40 && x > 20 && y < 37.5 && y > 17.5) {
+            return 4;
+        }
+        //space 5
+        if (x > 40 && y < 37.5 && y > 17.5) {
+            return 5;
+        }
+        //space 0
+        if (x < 20 && y > 37.5) {
+            return 0;
+        }
+        //space 1
+        if (x < 40 && x > 20 && y > 37.5) {
+            return 1;
+        }
+        //space 2
+        if (x > 40 && y > 37.5) {
+            return 2;
+        }
+    }
+
+    circle(x, y) {
+        for (let i = 1; i <= 60; i++) {
+            let circle = new engine.Renderable();
+            circle.setColor([0, 0, 0, 1]);
+            circle.getXform().setPosition(x, y);
+            circle.getXform().setSize(5, 5);
+            this.mLineSet.addToSet(circle);
+        }
+    }
+
+    cross(x, y) {
+        let currentLine = new engine.LineRenderable();
+        currentLine.setFirstVertex(x + 5, y + 5);
+        currentLine.setSecondVertex(x - 5, y - 5);
+        this.mLineSet.addToSet(currentLine);
+
+        currentLine = new engine.LineRenderable();
+        currentLine.setFirstVertex(x - 5, y + 5);
+        currentLine.setSecondVertex(x + 5, y - 5);
+        this.mLineSet.addToSet(currentLine);
+    }
+
+    placePiece() {
+        let boardCoords = [[10, 47.5], [30, 47.5], [50, 47.5],
+                           [10, 27.5], [30, 27.5], [50, 27.5],
+                           [10,  7.5], [30,  7.5], [50,  7.5]];
+        let placeCoord = boardCoords[this.mSpace];
+        if (this.mTurn === "circle") {
+            this.circle(placeCoord[0], placeCoord[1]);
+            this.mBoard[this.mSpace] = this.mTurn;
+            this.checkWin(this.mTurn);
+            this.mTurn = "cross";
+        } else if (this.mTurn === "cross") {
+            this.cross(placeCoord[0], placeCoord[1]);
+            this.mBoard[this.mSpace] = this.mTurn;
+            this.checkWin(this.mTurn);
+            this.mTurn = "circle";
+        }
+    }
+
+    checkWin(player) {
+        let winCons = [[0, 1, 2], [0, 4, 8], [0, 3, 6], [1, 4, 7],
+                [2, 4, 6], [2, 5, 8], [3, 4, 5], [6, 7, 8]];
+        for (let i = 0; i < winCons.length; i++){
+            if (this.mBoard[winCons[i][0]] === player
+             && this.mBoard[winCons[i][1]] === player
+             && this.mBoard[winCons[i][2]] === player) {
+                this.mVictor = player;
+            }
+        }
     }
 }
 
