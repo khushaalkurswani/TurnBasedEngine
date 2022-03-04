@@ -17,6 +17,7 @@ class MyGame extends engine.Scene {
         this.mSpace = 0;
         this.mBoard = [];
         this.mVictor = null;
+        this.mStalemate = null;
         this.mTurnManager = null;
     }
         
@@ -58,6 +59,7 @@ class MyGame extends engine.Scene {
         this.mBoard = ["empty", "empty", "empty",
                        "empty", "empty", "empty",
                        "empty", "empty", "empty"];
+        this.mStalemate = false;
 
         let player1 = new engine.Player();
         player1.setStat("shape", "circle");
@@ -115,6 +117,12 @@ class MyGame extends engine.Scene {
             msg += " Victor:" + this.mVictor;
             this.mTurnManager.end();
         }
+
+        if (this.mStalemate) {
+            msg += " Victor: stalemate";
+            this.mTurnManager.end();
+        }
+
         this.mMsg.setText(msg);
     }
 
@@ -207,6 +215,14 @@ class MyGame extends engine.Scene {
                 this.mVictor = player;
             }
         }
+
+        let stalemate = true;
+        for (let i = 0; i < this.mBoard.length; i++){
+            if (this.mBoard[i] === "empty"){
+                stalemate = false;
+            }
+        }
+        this.mStalemate = stalemate;
     }
 }
 
