@@ -5,10 +5,14 @@ import GameObject from "./game_object.js";
 class Player extends GameObject {
     constructor(renderable) {
         super(renderable);
-        this.mTimeLimit = -1;
-        this.prevTimeLimit = -1;
+        this.mTimeLimit = null;
+        this.prevTimeLimit = null;
         this.mIsPermanent = true;
         this.mStats = new Map();
+    }
+
+    setRenderable(renderable) {
+        this.mRenderComponent = renderable;
     }
 
     setStats(statsArray) {
@@ -38,7 +42,13 @@ class Player extends GameObject {
     }
 
     setTimeLimit(timeLimit, isPermanent) {
-        this.mPrevTimeLimit = this.mTimeLimit;
+        if (isPermanent) {
+            this.mPrevTimeLimit = timeLimit;
+        }
+        else {
+            this.mPrevTimeLimit = this.mTimeLimit;
+        }
+        
         this.mTimeLimit = timeLimit;
         this.mIsPermanent = isPermanent;
     }
