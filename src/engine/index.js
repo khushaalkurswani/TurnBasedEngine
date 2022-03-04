@@ -27,6 +27,8 @@ import LerpVec2 from "./utils/lerp_vec2.js";
 import Oscillate from "./utils/oscillate.js";
 import Shake from "./utils/shake.js";
 import ShakeVec2 from "./utils/shake_vec2.js";
+import TurnManager from "./utils/turn_manager.js"
+import { eStatus } from "./utils/turn_manager.js"
 
 // camera and related supports
 import Camera from "./cameras/camera.js";
@@ -43,7 +45,6 @@ import { eAnimationType } from "./renderables/sprite_animate_renderable.js";
 
 // game objects
 import GameObject from "./game_objects/game_object.js";
-import { eStatus } from "./game_objects/player.js";
 import Player from "./game_objects/player.js";
 import GameObjectSet from "./game_objects/game_object_set.js";
 
@@ -91,7 +92,7 @@ export default {
     Lerp, LerpVec2, Oscillate, Shake, ShakeVec2,
 
     // Util classes
-    Camera, Scene, Transform, BoundingBox,  
+    Camera, Scene, Transform, BoundingBox, TurnManager,
      
     // Renderables
     Renderable, TextureRenderable, SpriteRenderable, SpriteAnimateRenderable, FontRenderable, LineRenderable,

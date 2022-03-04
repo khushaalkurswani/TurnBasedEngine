@@ -14,10 +14,10 @@ class MyGame extends engine.Scene {
         this.mLineSet = null;
         this.mPieceSet = null;
 
-        this.mTurn = null;
         this.mSpace = 0;
         this.mBoard = [];
         this.mVictor = null;
+        this.mTurnManager = null;
     }
         
     init() {
@@ -48,8 +48,6 @@ class MyGame extends engine.Scene {
         }
         this.mPieceSet = new engine.GameObjectSet();
 
-        this.mTurn = "circle";
-
         /*
         0 | 1 | 2
         ----------
@@ -60,6 +58,16 @@ class MyGame extends engine.Scene {
         this.mBoard = ["empty", "empty", "empty",
                        "empty", "empty", "empty",
                        "empty", "empty", "empty"];
+
+        let player1 = new engine.Player();
+        player1.setStat("shape", "circle");
+
+        let player2 = new engine.Player();
+        player2.setStat("shape", "cross");
+
+        this.mTurnManager = new engine.TurnManager();
+        this.mTurnManager.setPlayers([player1, player2]);
+        this.mTurnManager.start();
     }
     
     // This is the draw function, make sure to setup proper drawing environment, and more
@@ -79,25 +87,33 @@ class MyGame extends engine.Scene {
     // The Update function, updates the application state. Make sure to _NOT_ draw
     // anything from this function!
     update () {
-        let msg = "Turn: " + this.mTurn + " ";
+        let currShape = this.mTurnManager.getCurrentTurn().getStatValue("shape");
+        let msg = "Current: " + currShape + " ";
         let echo = "";
         let x, y;
+        
+        if(this.mTurnManager.isActive()){
+            if (engine.input.isButtonClicked(engine.input.eMouseButton.eLeft)) {
+                x = this.mCamera.mouseWCX();
+                y = this.mCamera.mouseWCY();
     
-        if (engine.input.isButtonClicked(engine.input.eMouseButton.eLeft) && this.mVictor === null) {
-            x = this.mCamera.mouseWCX();
-            y = this.mCamera.mouseWCY();
-
-            this.mSpace = this.checkXY(x, y);
-            if (this.mBoard[this.mSpace] === "empty"){
-                this.placePiece();
+                this.mSpace = this.checkXY(x, y);
+                if (this.mBoard[this.mSpace] === "empty"){
+                    this.placePiece(currShape);
+                }
+            }
+    
+            if (engine.input.isKeyClicked(engine.input.keys.N)){
+                this.mTurnManager.nextTurn();
             }
         }
     
         msg += echo;
-        msg += " Space:" + this.mSpace + " ";
+        msg += " Next:" + this.mTurnManager.getNextTurn().getStatValue("shape") + " ";
 
         if (this.mVictor !== null) {
             msg += " Victor:" + this.mVictor;
+            this.mTurnManager.end();
         }
         this.mMsg.setText(msg);
     }
@@ -163,21 +179,21 @@ class MyGame extends engine.Scene {
         this.mLineSet.addToSet(currentLine);
     }
 
-    placePiece() {
+    placePiece(currShape) {
         let boardCoords = [[10, 47.5], [30, 47.5], [50, 47.5],
                            [10, 27.5], [30, 27.5], [50, 27.5],
                            [10,  7.5], [30,  7.5], [50,  7.5]];
         let placeCoord = boardCoords[this.mSpace];
-        if (this.mTurn === "circle") {
+        if (currShape === "circle") {
             this.circle(placeCoord[0], placeCoord[1]);
-            this.mBoard[this.mSpace] = this.mTurn;
-            this.checkWin(this.mTurn);
-            this.mTurn = "cross";
-        } else if (this.mTurn === "cross") {
+            this.mBoard[this.mSpace] = currShape;
+            this.checkWin(currShape);
+            this.mTurnManager.nextTurn();
+        } else if (currShape === "cross") {
             this.cross(placeCoord[0], placeCoord[1]);
-            this.mBoard[this.mSpace] = this.mTurn;
-            this.checkWin(this.mTurn);
-            this.mTurn = "circle";
+            this.mBoard[this.mSpace] = currShape;
+            this.checkWin(currShape);
+            this.mTurnManager.nextTurn();
         }
     }
 

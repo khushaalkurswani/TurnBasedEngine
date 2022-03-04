@@ -120,12 +120,21 @@ class TurnManager {
         }
     }
 
+    isActive() {
+        return this.mStatus === eStatus.eOn;
+    }
+
     getCurrentTurn() {
         return this.mPlayers[this.mCurrentTurn];
     }
 
+    getNextTurn() {
+        return this.mPlayers[(this.mCurrentTurn + 1) % this.mPlayers.length];
+    }
+
     nextTurn() {
         // Next player's turn
+        let currentTime = performance.now();
         this.mCurrentTurn++;
         this.mCurrentTurn %= this.mPlayers.length;
 
