@@ -230,9 +230,21 @@ class TurnManager {
         this.mTurnQueue.push([player, priority]);
     }
     
-    addAction(functionName, args, player = this.mCurrentTurn) { }
+    addAction(functionName, args, player = this.mCurrentTurn) { 
+        this.mActions.push([player, functionName, args]);
+    }
 
-    performActions() { }
+    performActions() {
+        // For each action is the mActions array, perform each action/function
+        for (let i = 0; i < this.mActions.length; i++) {
+            let player = this.mActions[i][0];
+            let functionName = this.mActions[i][1];
+            let args = this.mActions[i][2];
+
+            // Run the player's function using the provided args
+            functionName.apply(player, args);
+        }
+    }
 }
 
 export { eStatus }
