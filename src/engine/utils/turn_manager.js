@@ -141,6 +141,9 @@ class TurnManager {
         // Set up next turn
         let timeLimit = this.mPlayers[this.mCurrentTurn].getTimeLimit();
 
+        // Resets the time limit (if the time limit was temporarily changed)
+        this.mPlayers[this.mCurrentTurn].resetTimeLimit();
+
         if (timeLimit === null || timeLimit === -1) {
             // Use TurnManager's time limit
             timeLimit = this.mTimeLimit;
