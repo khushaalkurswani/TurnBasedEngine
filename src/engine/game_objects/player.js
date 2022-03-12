@@ -54,7 +54,7 @@ class Player extends GameObject {
     }
 
     resetTimeLimit() {
-        if (!isPermanent) {
+        if (!this.mIsPermanent) {
             this.mTimeLimit = this.mPrevTimeLimit;
             this.mIsPermanent = true;
         }
