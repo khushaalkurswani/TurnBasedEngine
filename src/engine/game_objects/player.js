@@ -53,6 +53,13 @@ class Player extends GameObject {
         this.mIsPermanent = isPermanent;
     }
 
+    resetTimeLimit() {
+        if (!this.mIsPermanent) {
+            this.mTimeLimit = this.mPrevTimeLimit;
+            this.mIsPermanent = true;
+        }
+    }
+
     getTimeLimit() {
         return this.mTimeLimit;
     }

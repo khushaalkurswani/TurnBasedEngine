@@ -89,12 +89,15 @@ class MyGame extends engine.Scene {
     // The Update function, updates the application state. Make sure to _NOT_ draw
     // anything from this function!
     update () {
-        let currShape = this.mTurnManager.getCurrentTurn().getStatValue("shape");
-        let msg = "Current: " + currShape + " ";
+        let msg = "Current:  Next:  ";
         let echo = "";
         let x, y;
         
         if(this.mTurnManager.isActive()){
+           let currShape = this.mTurnManager.getCurrentTurn().getStatValue("shape");
+           msg = "Current: " + currShape + "   ";
+
+
             if (engine.input.isButtonClicked(engine.input.eMouseButton.eLeft)) {
                 x = this.mCamera.mouseWCX();
                 y = this.mCamera.mouseWCY();
@@ -108,18 +111,18 @@ class MyGame extends engine.Scene {
             if (engine.input.isKeyClicked(engine.input.keys.N)){
                 this.mTurnManager.nextTurn();
             }
+
+            msg += echo;
+            msg += " Next: " + this.mTurnManager.getNextTurn().getStatValue("shape") + "   ";
         }
     
-        msg += echo;
-        msg += " Next:" + this.mTurnManager.getNextTurn().getStatValue("shape") + " ";
-
         if (this.mVictor !== null) {
-            msg += " Victor:" + this.mVictor;
+            msg = " Victor:" + this.mVictor;
             this.mTurnManager.end();
         }
 
         if (this.mStalemate) {
-            msg += " Victor: stalemate";
+            msg = " Victor: stalemate";
             this.mTurnManager.end();
         }
 
