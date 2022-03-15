@@ -128,7 +128,6 @@ class MyGame extends engine.Scene {
                 msg += " Time:" + Math.floor(this.mTurnManager.getTime() / 1000) + " ";
 
                 if (engine.input.isKeyClicked(engine.input.keys.Space)){
-                    currPlayer.setTimeLimit(null);
                     let newBullet = new Bullet(currPlayer.getPos(), currPlayer.getColor(), 1);
                     this.mBulletSet.addToSet(newBullet);
                     this.moveAllowed = false;

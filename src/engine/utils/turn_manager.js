@@ -14,6 +14,7 @@ class TurnManager {
         this.mTimeLimit = timeLimit;
         this.mNextTurnTime = 0;
         this.mCurrentTurn = null;
+        this.mPriority = 0;
         this.mTimeLeft = 0;
         this.mStatus = eStatus.eOff;
         this.mActions = [ ];
@@ -183,8 +184,10 @@ class TurnManager {
         let currentTime = performance.now();
 
         if (this.mCurrentTurn !== null) {
-            // Add current player's next turn to the queue
-            this.mTurnQueue.push([this.mCurrentTurn, this.mDefaultPriority]);
+            // Removes weird priority turns from queue
+            if (this.mPriority == this.mDefaultPriority) {
+                this.mTurnQueue.push([this.mCurrentTurn, this.mDefaultPriority]);
+            }
         }
 
         // Get next player
@@ -197,6 +200,7 @@ class TurnManager {
         }
 
         this.mCurrentTurn = nextPlayer[0];
+        this.mPriority = nextPlayer[1];
 
         // Find next player's turn and pop it from the queue
         for(let i = 0; i < this.mTurnQueue.length; i++) {
