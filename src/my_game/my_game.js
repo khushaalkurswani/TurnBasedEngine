@@ -1,6 +1,9 @@
 "use strict";  // Operate in Strict mode such that variables must be declared before used!
 
 import engine from "../engine/index.js";
+import Bullet from "./objects/bullet.js";
+import Shooter from "./objects/shooter.js";
+import Target from "./objects/target.js";
 
 class MyGame extends engine.Scene {
     constructor() {
@@ -10,15 +13,13 @@ class MyGame extends engine.Scene {
         this.mCamera = null;
 
         this.mMsg = null;
-    
-        this.mLineSet = null;
-        this.mPieceSet = null;
+        this.mPoints = null;
 
-        this.mSpace = 0;
-        this.mBoard = [];
-        this.mVictor = null;
-        this.mStalemate = null;
         this.mTurnManager = null;
+
+        this.mTargetSet = null;
+        this.mBulletSet = null;
+        this.moveAllowed = true;
     }
         
     init() {
@@ -36,39 +37,39 @@ class MyGame extends engine.Scene {
         this.mMsg.getXform().setPosition(-19, -8);
         this.mMsg.setTextHeight(3);
 
-        this.mLineSet = new engine.GameObjectSet();
-        let lineCoords = [[20, -2.5, 20, 57.5],
-                        [40, -2.5, 40, 57.5],
-                        [0, 17.5, 60, 17.5],
-                        [0, 37.5, 60, 37.5]];
-        for (let i = 0; i < lineCoords.length; i++) {
-            let currentLine = new engine.LineRenderable();
-            currentLine.setFirstVertex(lineCoords[i][0], lineCoords[i][1]);
-            currentLine.setSecondVertex(lineCoords[i][2], lineCoords[i][3]);
-            this.mLineSet.addToSet(currentLine);
+        this.mPoints = new engine.FontRenderable("Points");
+        this.mPoints.setColor([0, 0, 0, 1]);
+        this.mPoints.getXform().setPosition(-18, 63);
+        this.mPoints.setTextHeight(2);
+
+        // target setup
+        this.mTargetSet = new engine.GameObjectSet();
+        for(let i = 0; i < 10; i++) {
+            this.newTarget();
         }
-        this.mPieceSet = new engine.GameObjectSet();
 
-        /*
-        0 | 1 | 2
-        ----------
-        3 | 4 | 5
-        ----------
-        6 | 7 | 8
-        */
-        this.mBoard = ["empty", "empty", "empty",
-                       "empty", "empty", "empty",
-                       "empty", "empty", "empty"];
-        this.mStalemate = false;
+        // bullet setup
+        this.mBulletSet = new engine.GameObjectSet();
 
-        let player1 = new engine.Player();
-        player1.setStat("shape", "circle");
+        // player setup
+        let startPos = [-5, 27.5];
 
-        let player2 = new engine.Player();
-        player2.setStat("shape", "cross");
+        let player1 = new Shooter(startPos, [1, 0, 0, 1]);
+        player1.setStats([["color", "R"], ["score", 0], ["special", 0]]);
 
+        let player2 = new Shooter(startPos, [1, 1, 0, 1]);
+        player2.setStats([["color", "Y"], ["score", 0], ["special", 0]]);
+
+        let player3 = new Shooter(startPos, [0, 1, 0, 1]);
+        player3.setStats([["color", "G"], ["score", 0], ["special", 0]]);
+
+        let player4 = new Shooter(startPos, [0, 0, 1, 1]);
+        player4.setStats([["color", "B"], ["score", 0], ["special", 0]]);
+
+        // turnmanager setup
         this.mTurnManager = new engine.TurnManager();
-        this.mTurnManager.setPlayers([player1, player2]);
+        this.mTurnManager.setPlayers([player1, player2, player3, player4]);
+        this.mTurnManager.setTimeLimit(7999);
         this.mTurnManager.start();
     }
     
@@ -81,151 +82,167 @@ class MyGame extends engine.Scene {
         this.mCamera.setViewAndCameraMatrix();
 
         this.mMsg.draw(this.mCamera);
-        
-        this.mLineSet.draw(this.mCamera);
-        this.mPieceSet.draw(this.mCamera);
+        this.mPoints.draw(this.mCamera);
+
+        if(this.mTurnManager.isActive()){
+            this.mTargetSet.draw(this.mCamera);
+            this.mBulletSet.draw(this.mCamera);
+            this.mTurnManager.getCurrentTurn().draw(this.mCamera);
+        }
     }
     
     // The Update function, updates the application state. Make sure to _NOT_ draw
     // anything from this function!
     update () {
         let msg = "Current:  Next:  ";
-        let echo = "";
-        let x, y;
+        let points = "";
         
         if(this.mTurnManager.isActive()){
-           let currShape = this.mTurnManager.getCurrentTurn().getStatValue("shape");
-           msg = "Current: " + currShape + "   ";
+            let currPlayer = this.mTurnManager.getCurrentTurn();
+            let currPlayers = this.mTurnManager.getPlayers();
+            let currColor = currPlayer.getStatValue("color");
 
+            for (let i = 0; i < currPlayers.length; i++) {
+                points += currPlayers[i].getStatValue("color") + ": "
+                        + currPlayers[i].getStatValue("score") + " | ";
+            }
 
-            if (engine.input.isButtonClicked(engine.input.eMouseButton.eLeft)) {
-                x = this.mCamera.mouseWCX();
-                y = this.mCamera.mouseWCY();
-    
-                this.mSpace = this.checkXY(x, y);
-                if (this.mBoard[this.mSpace] === "empty"){
-                    this.placePiece(currShape);
+            msg = "Current: " + currColor + "    ";
+            msg += "Next: " + this.mTurnManager.getNextTurn().getStatValue("color") + "   ";
+
+            // Update objects
+            this.mTargetSet.update();
+            this.mBulletSet.update();
+            currPlayer.update();
+
+            // Player movement
+            if (this.mCamera.isMouseInViewport()) {
+                let newX = currPlayer.getXform().getXPos();
+                let newY = this.mCamera.mouseWCY();
+                currPlayer.moveTo(vec2.fromValues(newX, newY));
+            }
+            
+            // Actions while player is "thinking"
+            if (this.moveAllowed) {
+                this.mTurnManager.update();
+                msg += " Time:" + Math.floor(this.mTurnManager.getTime() / 1000) + " ";
+
+                if (engine.input.isKeyClicked(engine.input.keys.Space)){
+                    currPlayer.setTimeLimit(null);
+                    let newBullet = new Bullet(currPlayer.getPos(), currPlayer.getColor(), 1);
+                    this.mBulletSet.addToSet(newBullet);
+                    this.moveAllowed = false;
                 }
             }
-    
+            
+            // Hit detection between targets and bullets
+            for (let i = 0; i < this.mTargetSet.size(); i++) {
+                for (let j = 0; j < this.mBulletSet.size(); j++) {
+                    let currTarget = this.mTargetSet.getObjectAt(i);
+                    let currBullet = this.mBulletSet.getObjectAt(j);
+                    if (currTarget.getBBox().intersectsBound(currBullet.getBBox())) {
+                        console.log("Hit!");
+                        currTarget.onHit();
+                        currBullet.onHit();
+                    }
+                }
+            }
+
+            // Target deletion if hit
+            for (let i = 0; i < this.mTargetSet.size(); i++) {
+                let currTarget = this.mTargetSet.getObjectAt(i);
+                if (currTarget.isHit()) {
+                    // checks whether target was special and performs actions
+                    let value = currTarget.getSpecial();
+                    
+                    if (value == 7) {
+                        // blue: halve next player's turn
+                        this.halveTime(this.mTurnManager.getNextTurn());
+                    } else if (value == 8) {
+                        // green: randomize order of players
+                        this.randomizeOrder(currPlayers);
+                    } else if (value == 9) {
+                        // red: adds another turn
+                        this.addTurn(currPlayer);
+                    }
+
+                    this.mTargetSet.removeFromSet(currTarget);
+                    let newScore = currPlayer.getStatValue("score") + 1;
+                    currPlayer.setStat("score", newScore);
+                    this.newTarget();
+                }
+            }
+
+            // Bullet deletion if hit
+            for (let i = 0; i < this.mBulletSet.size(); i++) {
+                let currBullet = this.mBulletSet.getObjectAt(i);
+                if(currBullet.isHit()) {
+                    this.mBulletSet.removeFromSet(currBullet);
+                    this.mTurnManager.nextTurn();
+                    this.moveAllowed = true;
+                }
+            }
+
+            // Victory detection
+            for (let i = 0; i < currPlayers.length; i++) {
+                if (currPlayers[i].getStatValue("score") >= 10) {
+                    msg = " Victor:" + currPlayers[i].getStatValue("color");
+                    this.mTurnManager.end();
+                }
+            }
+
+            // Debug buttons
             if (engine.input.isKeyClicked(engine.input.keys.N)){
                 this.mTurnManager.nextTurn();
             }
 
-            msg += echo;
-            msg += " Next: " + this.mTurnManager.getNextTurn().getStatValue("shape") + "   ";
-        }
-    
-        if (this.mVictor !== null) {
-            msg = " Victor:" + this.mVictor;
-            this.mTurnManager.end();
-        }
+            if (engine.input.isKeyClicked(engine.input.keys.B)){
+                this.halveTime(this.mTurnManager.getNextTurn());
+            }
 
-        if (this.mStalemate) {
-            msg = " Victor: stalemate";
-            this.mTurnManager.end();
+            if (engine.input.isKeyClicked(engine.input.keys.G)){
+                this.randomizeOrder(currPlayers);
+            }
+
+            if (engine.input.isKeyClicked(engine.input.keys.R)){
+                this.addTurn(currPlayer);
+            }
         }
 
         this.mMsg.setText(msg);
+        this.mPoints.setText(points);
     }
 
-    checkXY(x, y) {
-        //space 6
-        if (x < 20 && y < 17.5) {
-            return 6;
-        }
-        //space 7
-        if (x < 40 && x > 20 && y < 17.5) {
-            return 7;
-        }
-        //space 8
-        if (x > 40 && y < 17.5) {
-            return 8;
-        }
-        //space 3
-        if (x < 20 && y < 37.5 && y > 17.5) {
-            return 3;
-        }
-        //space 4
-        if (x < 40 && x > 20 && y < 37.5 && y > 17.5) {
-            return 4;
-        }
-        //space 5
-        if (x > 40 && y < 37.5 && y > 17.5) {
-            return 5;
-        }
-        //space 0
-        if (x < 20 && y > 37.5) {
-            return 0;
-        }
-        //space 1
-        if (x < 40 && x > 20 && y > 37.5) {
-            return 1;
-        }
-        //space 2
-        if (x > 40 && y > 37.5) {
-            return 2;
-        }
+    newTarget() {
+        let randPos = ([this.rN(30, 80), this.rN(-10, 65)]);
+        let newTarget = new Target(randPos);
+        this.mTargetSet.addToSet(newTarget);
     }
 
-    circle(x, y) {
-        for (let i = 1; i <= 60; i++) {
-            let circle = new engine.Renderable();
-            circle.setColor([0, 0, 0, 1]);
-            circle.getXform().setPosition(x, y);
-            circle.getXform().setSize(5, 5);
-            this.mLineSet.addToSet(circle);
-        }
+    rN(max, min) {
+        return Math.random() * (max - min + 1) + min;
     }
 
-    cross(x, y) {
-        let currentLine = new engine.LineRenderable();
-        currentLine.setFirstVertex(x + 5, y + 5);
-        currentLine.setSecondVertex(x - 5, y - 5);
-        this.mLineSet.addToSet(currentLine);
-
-        currentLine = new engine.LineRenderable();
-        currentLine.setFirstVertex(x - 5, y + 5);
-        currentLine.setSecondVertex(x + 5, y - 5);
-        this.mLineSet.addToSet(currentLine);
+    halveTime(player) {
+        player.setTimeLimit(3999);
     }
 
-    placePiece(currShape) {
-        let boardCoords = [[10, 47.5], [30, 47.5], [50, 47.5],
-                           [10, 27.5], [30, 27.5], [50, 27.5],
-                           [10,  7.5], [30,  7.5], [50,  7.5]];
-        let placeCoord = boardCoords[this.mSpace];
-        if (currShape === "circle") {
-            this.circle(placeCoord[0], placeCoord[1]);
-            this.mBoard[this.mSpace] = currShape;
-            this.checkWin(currShape);
-            this.mTurnManager.nextTurn();
-        } else if (currShape === "cross") {
-            this.cross(placeCoord[0], placeCoord[1]);
-            this.mBoard[this.mSpace] = currShape;
-            this.checkWin(currShape);
-            this.mTurnManager.nextTurn();
+    randomizeOrder(currPlayers) {
+        let randOrder = currPlayers;
+        let i = currPlayers.length;
+
+        while (i != 1) {
+            let randI = Math.floor(Math.random() * i);
+            i--;
+            [randOrder[i], randOrder[randI]] = [currPlayers[randI], currPlayers[i]];
         }
+
+        this.mTurnManager.setPlayers(randOrder);
+        this.mTurnManager.nextTurn();
     }
 
-    checkWin(player) {
-        let winCons = [[0, 1, 2], [0, 4, 8], [0, 3, 6], [1, 4, 7],
-                [2, 4, 6], [2, 5, 8], [3, 4, 5], [6, 7, 8]];
-        for (let i = 0; i < winCons.length; i++){
-            if (this.mBoard[winCons[i][0]] === player
-             && this.mBoard[winCons[i][1]] === player
-             && this.mBoard[winCons[i][2]] === player) {
-                this.mVictor = player;
-            }
-        }
-
-        let stalemate = true;
-        for (let i = 0; i < this.mBoard.length; i++){
-            if (this.mBoard[i] === "empty"){
-                stalemate = false;
-            }
-        }
-        this.mStalemate = stalemate;
+    addTurn(player) {
+        this.mTurnManager.queueTurn(player, 1);
     }
 }
 

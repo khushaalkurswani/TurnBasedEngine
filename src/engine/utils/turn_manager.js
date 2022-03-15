@@ -122,6 +122,10 @@ class TurnManager {
         }
     }
 
+    getTime() {
+        return this.mNextTurnTime - performance.now();
+    }
+
     getTimeLimit() {
         return this.mTimeLimit;
     }
@@ -171,14 +175,14 @@ class TurnManager {
     }
 
     nextTurn() {
-        if (this.mStatus === eStatus.eOff) {
+        if (this.mStatus !== eStatus.eOn) {
             return;
         } 
 
         // Next player's turn
         let currentTime = performance.now();
 
-        if (this.mCurrentTurn != null) {
+        if (this.mCurrentTurn !== null) {
             // Add current player's next turn to the queue
             this.mTurnQueue.push([this.mCurrentTurn, this.mDefaultPriority]);
         }
@@ -211,8 +215,17 @@ class TurnManager {
         this.mCurrentTurn.resetTimeLimit();
 
         if (timeLimit === null || timeLimit === -1) {
-            // Use TurnManager's time limit
-            timeLimit = this.mTimeLimit;
+            // check if TurnManager has a time limit
+            if (this.mTimeLimit === null || this.mTimeLimit === -1) {   
+                // Use a random time limit that will keep on getting extended 
+                timeLimit = 1000;
+            }
+            else {
+                // Use TurnManager's time limit
+                timeLimit = this.mTimeLimit;
+            }
+            
+
         }
 
         // Set when turn ends
@@ -224,14 +237,26 @@ class TurnManager {
         for (let i = 0; i < this.mPlayers.length; i++) {
             this.mTurnQueue.push([this.mPlayers[i], this.mDefaultPriority]);
         }
+        this.mCurrentTurn = null;
+        this.mNextTurnTime = 0;
     }
 
-    queueTurn(player, priority) { 
+    queueTurn(player, priority = this.mDefaultPriority) { 
         this.mTurnQueue.push([player, priority]);
     }
+
+    removeTurn(player, priority = this.mDefaultPriority) {
+        for (let i = 0; i < this.mTurnQueue.length; i++) {
+            if (this.mTurnQueue[i][0] === player &&
+              this.mTurnQueue[i][1] === priority) {
+                this.mTurnQueue.splice(i, 1);
+                break;
+            } 
+        }
+    }
     
-    addAction(functionName, args, player = this.mCurrentTurn) { 
-        this.mActions.push([player, functionName, args]);
+    addAction(functionName, args, object = this.mCurrentTurn) { 
+        this.mActions.push([object, functionName, args]);
     }
 
     performActions() {
